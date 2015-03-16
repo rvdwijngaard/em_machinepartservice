@@ -5,7 +5,34 @@ var app = express();
 
 var https = require('https');
 var util = require('./util');
+var sqs = require('sqs.js');
 //var _ = require('lowdash');
+
+var reader = sqs.reader({
+	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  	region: 'us-west-1',
+  	queueUrl: 'https://sqs.eu-west-1.amazonaws.com/831844703282/machineparts_events',
+  	startPolling: true
+});
+
+var writer = sqs.writer({
+	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  	region: 'us-west-1',
+  	queueUrl: 'https://sqs.eu-west-1.amazonaws.com/831844703282/machineparts_events'	
+});
+
+reader.on('error', function(err) {
+  console.error(err);
+});
+
+reader.on('message', function(msg) {
+  console.log('Received %s', msg.Body);
+  msg.ack(function(err){
+  	console.log(err);
+  });
+});
 
 
 app.use(morgan('combined'));
@@ -27,22 +54,14 @@ app.post('/sns', function(req, res){
 			res.sendStatus(200);
 		});	
 	} else if (messageType === 'Notification') {
-		res.sendStatus(200);
 		// store the message in the queue
+		writer.publish({MessageBody : JSON.stringify(req.body)});
+		res.sendStatus(200);
 	}
 	
 });
 
 app.post('/event', function(req, res){
-	// receive the event message here
-	// message id
-	
-	// parse it 
-	
-	// put it in the queue
-	
-	// process the queue asynchroniously
-	
 	
 	res.sendStatus(200);
 });
